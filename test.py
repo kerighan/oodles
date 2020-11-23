@@ -10,13 +10,16 @@ def text_ops():
     # get slide
     slide = slides[1]
     # change text
-    slide["Title"].text = "Title"
+    slide["Title"] = "Title2"
+
+    # change picture
+    slide = slides[2]
+    slide.img[0] = "/home/maixent/Téléchargements/DrC7FHBX4AAFAFM.png"
 
     # find the first block text that contains "yoyo"
     blocks = slide["Yoyo"]
     # add to it the first block text that contains "test"
     blocks += slide["test"]
-
     # in all blocks, replace the substring Yoyo by Yuyu
     blocks.replace("Yoyo", "Yuyu")
 
@@ -52,7 +55,10 @@ def replace_chart():
 
     sheets = oo.Sheets("10x3vhlNYUMeP_aBEgn9cAqpET8eUHrKi5YoMb_yGhDk")
     # .chart attribute is a list of all charts
-    new_chart = sheets["Focus Commerce - Sectors"].chart[0]
-
+    new_chart = sheets["Data"].chart[0]
     # replace the 0th chart in the 3rd slide by the chart on the Google Sheet
-    slides[3].chart[0].replace(new_chart)
+
+    slides[3].chart[0] = sheets["Data"].chart[0]
+
+
+replace_chart()

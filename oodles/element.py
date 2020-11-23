@@ -5,6 +5,10 @@ from googleapiclient.http import MediaFileUpload
 from subprocess import check_output
 
 
+# =============================================================================
+# Text management - GOOGLE SLIDES SIDE
+# =============================================================================
+
 class TextBlocks(object):
     def __init__(self, doc_id):
         self.doc_id = doc_id
@@ -29,17 +33,22 @@ class TextBlocks(object):
                 self.obj_ids.add(element.obj_id)
         return self
     
+    def change_text(self, value):
+        requests = []
+        for element in self.elements:
+            requests += element._fill(value)
+        SLIDES.presentations().batchUpdate(
+                    body={"requests": requests},
+                    presentationId=self.doc_id).execute()
+    
     def __setattr__(self, name, value):
         if name == "text":
-            requests = []
-            for element in self.elements:
-                requests += element._fill(value)
-            SLIDES.presentations().batchUpdate(
-                        body={"requests": requests},
-                        presentationId=self.doc_id).execute()
+            self.change_text(value)
         else:
             super(TextBlocks, self).__setattr__(name, value)
-
+    
+    def __assign__(self, value):
+        self.change_text(value)
     
     def replace(self, key, value):
         requests = []
@@ -100,6 +109,21 @@ class TextBlock:
         ]
 
 
+# =============================================================================
+# Images management - GOOGLE SLIDES SIDE
+# =============================================================================
+
+class Images:
+    def __init__(self):
+        self.elements = []
+
+    def add(self, block):
+        self.elements.append(block)
+    
+    def __setitem__(self, key, value):
+        self.elements[key].replace_image(value)
+
+
 class Image:
     def __init__(self, obj_id, doc_id, src, transform, size):
         self.obj_id = obj_id
@@ -107,6 +131,12 @@ class Image:
         self.src = src
         self.transform = transform
         self.size = size
+    
+    def replace_image(self, value):
+        if value[:4] == "http":
+            self.url = value
+        else:
+            self.file = value
     
     def __setattr__(self, name, value):
         if name == "url":
@@ -139,16 +169,25 @@ class Image:
             super(Image, self).__setattr__(name, value)
 
     def __repr__(self):
-        return self.src
+        return f"<{self.src}>"
 
 
-class SheetChart:
-    def __init__(self, spreadsheet_id, chart_id):
-        self.spreadsheet_id = spreadsheet_id
-        self.chart_id = chart_id
+# =============================================================================
+# Chart management - GOOGLE SLIDES SIDE
+# =============================================================================
+
+class Charts:
+    def __init__(self):
+        self.elements = []
     
-    def __repr__(self):
-        return f"{self.chart_id}"
+    def add(self, chart):
+        self.elements.append(chart)
+    
+    def __setitem__(self, key, value):
+        self.elements[key].replace_chart(value)
+    
+    def __getitem__(self, key):
+        return self.elements[key]
 
 
 class Chart:
@@ -159,7 +198,7 @@ class Chart:
         self.size = size
         self.transform = transform
 
-    def replace(self, sheetchart):
+    def replace_chart(self, sheetchart):
         ss_id = sheetchart.spreadsheet_id
         chart_id = sheetchart.chart_id
         requests = [
@@ -193,3 +232,17 @@ class Chart:
 
     def __repr__(self):
         return f"{self.obj_id}"
+
+
+# =============================================================================
+# Chart management - GOOGLE SHEETS SIDE
+# =============================================================================
+
+class SheetChart:
+    def __init__(self, spreadsheet_id, chart_id):
+        self.spreadsheet_id = spreadsheet_id
+        self.chart_id = chart_id
+    
+    def __repr__(self):
+        return f"{self.chart_id}"
+

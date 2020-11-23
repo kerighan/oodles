@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from .variables import (
     DRIVE, SLIDES, SHEETS, service_email)
-from .element import TextBlock, TextBlocks, Image, Chart, SheetChart
+from .element import (
+    TextBlock, TextBlocks, Image, Chart, Charts, SheetChart, Images)
 from .utils import hex_to_rgb
 from googleapiclient.errors import HttpError
 import addict
@@ -60,8 +61,8 @@ class Slide:
 
     def parse(self):
         texts = []
-        img = []
-        charts = []
+        img = Images()
+        charts = Charts()
         for obj in self.content.pageElements:
             obj_id = obj["objectId"]
             if "shape" in obj and "text" in obj.shape:
@@ -76,11 +77,11 @@ class Slide:
                 transform = obj["transform"]
                 size = obj["size"]
                 src = obj["image"]["contentUrl"]
-                img.append(Image(obj_id, self.doc_id, src, transform, size))
+                img.add(Image(obj_id, self.doc_id, src, transform, size))
             elif "sheetsChart" in obj:
                 transform = obj["transform"]
                 size = obj["size"]
-                charts.append(
+                charts.add(
                     Chart(obj_id, self.doc_id, self.slide_id, size, transform)
                 )
 
@@ -102,6 +103,10 @@ class Slide:
             if block.match(query):
                 res.add(block)
         return res
+
+    def __setitem__(self, query, value):
+        blocks = self.find(query)
+        blocks.change_text(value)
 
     def __getitem__(self, query):
         return self.find(query)
