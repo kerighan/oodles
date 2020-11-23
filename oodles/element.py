@@ -5,12 +5,11 @@ from googleapiclient.http import MediaFileUpload
 from subprocess import check_output
 
 
-class TextBlocks:
-    elements = []
-    obj_ids = set()
-
+class TextBlocks(object):
     def __init__(self, doc_id):
         self.doc_id = doc_id
+        self.elements = []
+        self.obj_ids = set()
     
     def add(self, block):
         self.elements.append(block)

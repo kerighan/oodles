@@ -89,11 +89,11 @@ class Slide:
         self.chart = charts
 
     def find(self, query):
-        res = TextBlocks(self.doc_id)
+        _res = TextBlocks(self.doc_id)
         for block in self.text:
             if block.match(query):
-                res.add(block)
-                return res
+                _res.add(block)
+                return _res
         return None
 
     def find_all(self, query):
@@ -112,6 +112,28 @@ class Sheets:
         self.doc_id = doc_id
         self.url = "https://docs.google.com/spreadsheets/d/" + self.doc_id
         self.load()
+    
+    @staticmethod
+    def create(title):
+        body = {
+            'properties': {
+                'title': title
+            }
+        }
+        spreadsheet = SHEETS.spreadsheets().create(
+            body=body, fields='spreadsheetId').execute()
+        return Sheets(spreadsheet.get('spreadsheetId'))
+
+    def share_with(self, email):
+        user_permission = {
+            "type": "user",
+            "role": "writer",
+            "emailAddress": email
+        }
+        DRIVE.permissions().create(
+            fileId=self.doc_id,
+            body=user_permission,
+            fields="id").execute()
 
     def load(self):
         try:
@@ -127,11 +149,11 @@ class Sheets:
 
     def __getitem__(self, name):
         if isinstance(name, int):
-            return Sheet(self.doc_id, self.sheets[name])
+            return Sheet(self, self.doc_id, self.sheets[name])
         elif isinstance(name, str):
             for sheet in self.sheets:
                 if name == sheet["properties"]["title"]:
-                    return Sheet(self.doc_id, sheet)
+                    return Sheet(self, self.doc_id, sheet)
             raise NameError(f"Sheet '{name}' not found")
     
     def __setitem__(self, name, df):
@@ -171,13 +193,22 @@ class Sheets:
 
 
 class Sheet:
-    def __init__(self, doc_id, content):
+    def __init__(self, parent, doc_id, content):
+        self.parent = parent
         self.doc_id = doc_id
         self.content = content
         self.title = self.content["properties"]["title"]
         self.sheet_id = self.content["properties"]["sheetId"]
         self.parse()
-    
+
+    def load(self):
+        sheets = Sheets(self.doc_id)
+        sheet = sheets[self.title]
+        self.content = sheet.content
+        self.title = sheet.title
+        self.sheet_id = sheet.sheet_id
+        self.parse()
+
     def clear(self):
         requests = [
             {
@@ -230,7 +261,7 @@ class Sheet:
         df = pd.DataFrame(values[1:], columns=values[0])
         return df
     
-    def create_serie(self, col_id, size, colors=None, i=0):
+    def create_serie(self, col_id, size, colors=None, i=0, chart_type="COLUMN"):
         serie = {
             "series": {
                 "sourceRange": {
@@ -245,11 +276,15 @@ class Sheet:
                     ]
                 }
             },
-            "targetAxis": "LEFT_AXIS"
+            "targetAxis": "BOTTOM_AXIS" if chart_type == "BAR" else "LEFT_AXIS"
         }
         if colors is not None:
             r, g, b = hex_to_rgb(colors[i])
-            serie["color"] = {"red": r, "green": g, "blue": b}
+            serie["color"] = {
+                "red": r / 255,
+                "green": g / 255,
+                "blue": b / 255
+            }
         return serie
 
     def create_chart(
@@ -279,7 +314,7 @@ class Sheet:
         else:
             col_id = cols.index(y)
             series.append(self.create_serie(
-                col_id, size, colors, 0))
+                col_id, size, colors, 0, chart_type))
             
         # create background color
         r, g, b = hex_to_rgb(background_color)
@@ -316,7 +351,7 @@ class Sheet:
                         "basicChart": {
                             "chartType": chart_type,
                             "legendPosition": "TOP_LEGEND",
-                            "domains": domaines,
+                            "domains": domains,
                             "series": series,
                             "headerCount": 1,
                             "stackedType": stacked_type
@@ -341,3 +376,4 @@ class Sheet:
             spreadsheetId=self.doc_id,
             body={"requests": requests}
         ).execute()
+        self.parent.load()
