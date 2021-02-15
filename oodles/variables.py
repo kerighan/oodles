@@ -1,3 +1,6 @@
+import logging
+
+logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from httplib2 import Http
