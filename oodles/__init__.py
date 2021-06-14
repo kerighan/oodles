@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from .variables import (
-    DRIVE, SLIDES, SHEETS, service_email)
-from .element import (
-    TextBlock, TextBlocks, Image, Chart, Charts, SheetChart, Images)
-from .utils import hex_to_rgb
-from googleapiclient.errors import HttpError
-import addict
-import time
 import os
+import time
+
+import addict
+from googleapiclient.errors import HttpError
+
+from .element import (Chart, Charts, Image, Images, SheetChart, TextBlock,
+                      TextBlocks)
+from .utils import hex_to_rgb
+from .variables import DRIVE, SHEETS, SLIDES, service_email
 
 
 class Slides:
@@ -117,7 +118,7 @@ class Sheets:
         self.doc_id = doc_id
         self.url = "https://docs.google.com/spreadsheets/d/" + self.doc_id
         self.load()
-    
+
     @staticmethod
     def create(title):
         body = {
@@ -160,7 +161,7 @@ class Sheets:
                 if name == sheet["properties"]["title"]:
                     return Sheet(self, self.doc_id, sheet)
             raise NameError(f"Sheet '{name}' not found")
-    
+
     def __setitem__(self, name, df):
         try:
             sheet = self.__getitem__(name)
@@ -219,7 +220,7 @@ class Sheet:
             {
                 "updateCells": {
                     "range": {
-                    "sheetId": self.sheet_id
+                        "sheetId": self.sheet_id
                     },
                     "fields": "userEnteredValue"
                 }
@@ -228,7 +229,7 @@ class Sheet:
         SHEETS.spreadsheets().batchUpdate(
             spreadsheetId=self.doc_id,
             body={"requests": requests}).execute()
-    
+
     def parse(self):
         charts = []
         for obj in self.content.get("charts", []):
@@ -236,7 +237,7 @@ class Sheet:
             chart_id = obj["chartId"]
             charts.append(SheetChart(spreadsheet_id, chart_id))
         self.chart = charts
-    
+
     def __setattr__(self, name, value):
         if name == "value":
             data = []
@@ -265,18 +266,18 @@ class Sheet:
         values = request.execute()["values"]
         df = pd.DataFrame(values[1:], columns=values[0])
         return df
-    
+
     def create_serie(self, col_id, size, colors=None, i=0, chart_type="COLUMN"):
         serie = {
             "series": {
                 "sourceRange": {
                     "sources": [
                         {
-                        "sheetId": self.sheet_id,
-                        "startRowIndex": 0,
-                        "endRowIndex": size + 1,
-                        "startColumnIndex": col_id,
-                        "endColumnIndex": col_id + 1
+                            "sheetId": self.sheet_id,
+                            "startRowIndex": 0,
+                            "endRowIndex": size + 1,
+                            "startColumnIndex": col_id,
+                            "endColumnIndex": col_id + 1
                         }
                     ]
                 }
@@ -297,8 +298,11 @@ class Sheet:
         colors=None,
         background_color="#FFFFFF",
         chart_type="COLUMN",
-        stacked_type="NOT_STACKED"
+        stacked_type="NOT_STACKED",
+        legend_position="TOP_LEGEND"
     ):
+        if legend_position is None:
+            legend_position = "NO_LEGEND"
         # get values
         df = self.values()
         size = df.shape[0]
@@ -320,7 +324,7 @@ class Sheet:
             col_id = cols.index(y)
             series.append(self.create_serie(
                 col_id, size, colors, 0, chart_type))
-            
+
         # create background color
         r, g, b = hex_to_rgb(background_color)
         background_color = {
@@ -355,7 +359,7 @@ class Sheet:
                         "title": "",
                         "basicChart": {
                             "chartType": chart_type,
-                            "legendPosition": "TOP_LEGEND",
+                            "legendPosition": legend_position,
                             "domains": domains,
                             "series": series,
                             "headerCount": 1,
