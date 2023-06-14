@@ -12,10 +12,12 @@ scopes = ("https://www.googleapis.com/auth/presentations",
           "https://www.googleapis.com/auth/drive",
           "https://www.googleapis.com/auth/spreadsheets")
 GOOGLE_APPLICATION_CREDENTIALS = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-credentials = service_account.Credentials.from_service_account_file(GOOGLE_APPLICATION_CREDENTIALS, scopes=scopes)
+credentials = service_account.Credentials.from_service_account_file(
+    GOOGLE_APPLICATION_CREDENTIALS, scopes=scopes)
 DRIVE = build("drive", "v3", credentials=credentials)
 SLIDES = build("slides", "v1", credentials=credentials)
 SHEETS = build("sheets", "v4", credentials=credentials)
+DOCS = build("docs", "v1", credentials=credentials)
 BUCKET = os.environ.get("OODLES_BUCKET", "gs://data-studies/img")
 
 
