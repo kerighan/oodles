@@ -4,7 +4,7 @@ from googleapiclient.errors import HttpError
 
 from .element import SheetChart
 from .utils import hex_to_rgb
-from .variables import DRIVE, SHEETS, service_email
+from .config import config
 
 
 class Sheets:
@@ -20,7 +20,7 @@ class Sheets:
                 "title": title
             }
         }
-        spreadsheet = SHEETS.spreadsheets().create(
+        spreadsheet = config.SHEETS.spreadsheets().create(
             body=body, fields="spreadsheetId").execute()
         return Sheets(spreadsheet.get("spreadsheetId"))
 
@@ -30,18 +30,19 @@ class Sheets:
             "role": "writer",
             "emailAddress": email
         }
-        DRIVE.permissions().create(
+        config.DRIVE.permissions().create(
             fileId=self.doc_id,
             body=user_permission,
             fields="id").execute()
 
     def load(self):
         try:
-            sheet = SHEETS.spreadsheets()
+            sheet = config.SHEETS.spreadsheets()
             result = sheet.get(spreadsheetId=self.doc_id).execute()
             self.document = result
         except HttpError:
-            print(f"remember to share your slides with {service_email}\n")
+            print("remember to share your slides with "
+                  f"{config.service_email}\n")
             raise HttpError
         self.sheets = self.document.get('sheets')
         self.title = self.document["properties"]["title"]
@@ -80,7 +81,7 @@ class Sheets:
                     }
                 }
             ]
-            SHEETS.spreadsheets().batchUpdate(
+            config.SHEETS.spreadsheets().batchUpdate(
                 spreadsheetId=self.doc_id,
                 body={"requests": requests}
             ).execute()
@@ -119,7 +120,7 @@ class Sheet:
                 }
             }
         ]
-        SHEETS.spreadsheets().batchUpdate(
+        config.SHEETS.spreadsheets().batchUpdate(
             spreadsheetId=self.doc_id,
             body={"requests": requests}).execute()
 
@@ -142,7 +143,7 @@ class Sheet:
             }
 
             data_range = f"{self.title}!A:A"
-            SHEETS.spreadsheets().values().append(
+            config.SHEETS.spreadsheets().values().append(
                 spreadsheetId=self.doc_id,
                 range=data_range,
                 body=resource,
@@ -153,7 +154,7 @@ class Sheet:
 
     def values(self):
         import pandas as pd
-        request = SHEETS.spreadsheets().values().get(
+        request = config.SHEETS.spreadsheets().values().get(
             spreadsheetId=self.doc_id,
             range=self.title)
         values = request.execute()["values"]
@@ -275,7 +276,7 @@ class Sheet:
                 }
             }
         }]
-        SHEETS.spreadsheets().batchUpdate(
+        config.SHEETS.spreadsheets().batchUpdate(
             spreadsheetId=self.doc_id,
             body={"requests": requests}
         ).execute()

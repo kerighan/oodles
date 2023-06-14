@@ -10,7 +10,7 @@ setuptools.setup(
     url="https://github.com/kerighan/oodles",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    install_requires=["addict", "google-api-python-client", "google-auth"],
+    install_requires=["addict==2.4.0", "google-api-python-client", "google-auth"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",

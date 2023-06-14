@@ -1,8 +1,6 @@
-from .variables import (
-    DRIVE, SLIDES, SHEETS, BUCKET,
-    GOOGLE_APPLICATION_CREDENTIALS, service_email)
-from googleapiclient.http import MediaFileUpload
+from .config import config
 from subprocess import check_output
+import os
 
 
 # =============================================================================
@@ -14,7 +12,7 @@ class TextBlocks(object):
         self.doc_id = doc_id
         self.elements = []
         self.obj_ids = set()
-    
+
     def add(self, block):
         self.elements.append(block)
         self.obj_ids.add(block.obj_id)
@@ -28,36 +26,36 @@ class TextBlocks(object):
         elif isinstance(block, TextBlocks):
             for element in block.elements:
                 if element.obj_id in self.obj_ids:
-                    continue                
+                    continue
                 self.elements.append(block)
                 self.obj_ids.add(element.obj_id)
         return self
-    
+
     def change_text(self, value):
         requests = []
         for element in self.elements:
             requests += element._fill(value)
-        SLIDES.presentations().batchUpdate(
-                    body={"requests": requests},
-                    presentationId=self.doc_id).execute()
-    
+        config.SLIDES.presentations().batchUpdate(
+            body={"requests": requests},
+            presentationId=self.doc_id).execute()
+
     def __setattr__(self, name, value):
         if name == "text":
             self.change_text(value)
         else:
             super(TextBlocks, self).__setattr__(name, value)
-    
+
     def __assign__(self, value):
         self.change_text(value)
-    
+
     def replace(self, key, value):
         requests = []
         for element in self.elements:
             requests += element._replace(key, value)
 
-        SLIDES.presentations().batchUpdate(
-                    body={"requests": requests},
-                    presentationId=self.doc_id).execute()
+        config.SLIDES.presentations().batchUpdate(
+            body={"requests": requests},
+            presentationId=self.doc_id).execute()
 
 
 class TextBlock:
@@ -65,13 +63,13 @@ class TextBlock:
         self.obj_id = obj_id
         self.text = text
         self.style = style
-    
+
     def match(self, query):
         return query in self.text
 
     def __repr__(self):
         return f"{self.text}"
-    
+
     def _fill(self, value):
         new_text = value
         return [
@@ -88,7 +86,7 @@ class TextBlock:
                 "fields": "*"
             }}
         ]
-    
+
     def _replace(self, key, value):
         new_text = self.text.replace(key, value)
         return [
@@ -119,7 +117,7 @@ class Images:
 
     def add(self, block):
         self.elements.append(block)
-    
+
     def __setitem__(self, key, value):
         self.elements[key].replace_image(value)
 
@@ -131,13 +129,13 @@ class Image:
         self.src = src
         self.transform = transform
         self.size = size
-    
+
     def replace_image(self, value):
         if value[:4] == "http":
             self.url = value
         else:
             self.file = value
-    
+
     def __setattr__(self, name, value):
         if name == "url":
             requests = [
@@ -149,7 +147,7 @@ class Image:
                     }
                 }
             ]
-            SLIDES.presentations().batchUpdate(
+            config.SLIDES.presentations().batchUpdate(
                 body={"requests": requests},
                 presentationId=self.doc_id).execute()
 
@@ -160,8 +158,8 @@ class Image:
                 shell=True)
             url = check_output(
                 f"gsutil -q signurl -d 5m "
-                f"-m GET {GOOGLE_APPLICATION_CREDENTIALS} "
-                f"{BUCKET}/{filename}",
+                f"-m GET {os.environ['GOOGLE_APPLICATION_CREDENTIALS']} "
+                f"{config.BUCKET}/{filename}",
                 shell=True)
             url = "https://" + str(url, "utf8").split("https://")[-1]
             self.url = url
@@ -179,13 +177,13 @@ class Image:
 class Charts:
     def __init__(self):
         self.elements = []
-    
+
     def add(self, chart):
         self.elements.append(chart)
-    
+
     def __setitem__(self, key, value):
         self.elements[key].replace_chart(value)
-    
+
     def __getitem__(self, key):
         return self.elements[key]
 
@@ -226,7 +224,7 @@ class Chart:
                 }
             }
         ]
-        SLIDES.presentations().batchUpdate(
+        config.SLIDES.presentations().batchUpdate(
             body={"requests": requests},
             presentationId=self.doc_id).execute()
 
@@ -242,7 +240,6 @@ class SheetChart:
     def __init__(self, spreadsheet_id, chart_id):
         self.spreadsheet_id = spreadsheet_id
         self.chart_id = chart_id
-    
+
     def __repr__(self):
         return f"{self.chart_id}"
-

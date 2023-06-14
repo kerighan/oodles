@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 from googleapiclient.errors import HttpError
 
-from .element import SheetChart
-from .utils import hex_to_rgb
-from .variables import DOCS, DRIVE, service_email
+from .config import config
 
 
 class Document:
@@ -16,9 +14,10 @@ class Document:
     @staticmethod
     def create(title):
         body = {
-            "title": title
+            "title": title,
+            'mimeType': 'application/vnd.google-apps.document'
         }
-        document = DRIVE.files().create(
+        document = config.DRIVE.files().create(
             body=body, fields="id").execute()
         return Document(document.get("id"))
 
@@ -28,44 +27,55 @@ class Document:
             "role": "writer",
             "emailAddress": email
         }
-        DRIVE.permissions().create(
+        config.DRIVE.permissions().create(
             fileId=self.doc_id,
             body=user_permission,
             fields="id").execute()
 
     def load(self):
         try:
-            result = DOCS.documents().get(documentId=self.doc_id).execute()
-            print(result)
+            result = config.DOCS.documents().get(
+                documentId=self.doc_id).execute()
             self.document = result
         except HttpError:
-            print(f"remember to share your document with {service_email}\n")
+            print("remember to share your document with "
+                  f"{config.service_email}\n")
             raise HttpError
         self.title = self.document["title"]
 
-    def change_title(self, new_title):
+    def empty_document(self):
+        try:
+            # Fetch the document again to get the latest endIndex
+            self.load()
+
+            # Empty the document and execute the request
+            end_index = self.document['body']['content'][-1]['endIndex'] - 1
+            requests = [{
+                'deleteContentRange': {
+                    'range': {
+                        'startIndex': 1,
+                        'endIndex': end_index,
+                    }
+                }
+            }]
+            config.DOCS.documents().batchUpdate(
+                documentId=self.doc_id, body={'requests': requests}).execute()
+
+            # Fetch the document again to get the latest endIndex
+            self.load()
+        except HttpError:
+            pass
+
+    def set_title(self, new_title):
         body = {"name": new_title}
-        request = DRIVE.files().update(fileId=self.doc_id, body=body)
+        request = config.DRIVE.files().update(fileId=self.doc_id, body=body)
         request.execute()
         self.title = new_title
 
     def set_content(self, text_list):
-        """Update the content of the document. 'text_list' should be a list of strings."""
-
-        # Fetch the document again to get the latest endIndex
-        self.load()
-
-        # Empty the document and execute the request
-        requests = [{
-            'deleteContentRange': {
-                'range': {
-                    'startIndex': 1,
-                    'endIndex': self.document['body']['content'][-1]['endIndex'] - 1,
-                }
-            }
-        }]
-        result = DOCS.documents().batchUpdate(
-            documentId=self.doc_id, body={'requests': requests}).execute()
+        """Set the content of the document."""
+        # Empty the document
+        self.empty_document()
 
         # Find the current end of the document
         current_end = self.document['body']['content'][-1]['endIndex']
@@ -107,10 +117,8 @@ class Document:
                 })
                 # Update the current end of the document
                 current_end += len(clean_text)
-
             else:
                 text += '\n'
-
                 # Add an insert text request
                 requests.append({
                     'insertText': {
@@ -124,6 +132,6 @@ class Document:
                 current_end += len(text)
 
         # Send the batchUpdate request
-        result = DOCS.documents().batchUpdate(
+        result = config.DOCS.documents().batchUpdate(
             documentId=self.doc_id, body={'requests': requests}).execute()
         return result

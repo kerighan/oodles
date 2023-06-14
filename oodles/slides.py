@@ -1,25 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-import time
-
 import addict
 from googleapiclient.errors import HttpError
 
-from .element import (Chart, Charts, Image, Images, SheetChart, TextBlock,
+from .element import (Chart, Charts, Image, Images, TextBlock,
                       TextBlocks)
-from .utils import hex_to_rgb
-from .variables import DRIVE, SHEETS, SLIDES, service_email
+from .config import config
 
 
 class Slides:
     def __init__(self, doc_id):
         self.doc_id = doc_id
         try:
-            self.document = SLIDES.presentations().get(
+            self.document = config.SLIDES.presentations().get(
                 presentationId=doc_id).execute()
         except HttpError:
-            print(f"remember to share your slides with {service_email}\n")
+            print("remember to share your slides with "
+                  f"{config.service_email}\n")
             raise HttpError
         self.pages = self.document.get('slides')
         self.title = self.document["title"]
@@ -29,7 +26,7 @@ class Slides:
         if title is None:
             title = f"Copy of {self.title}"
         data = {"name": title}
-        new_id = DRIVE.files().copy(
+        new_id = config.DRIVE.files().copy(
             body=data, fileId=self.doc_id
         ).execute().get("id")
         return Slides(new_id)
@@ -40,7 +37,7 @@ class Slides:
             "role": "writer",
             "emailAddress": email
         }
-        DRIVE.permissions().create(
+        config.DRIVE.permissions().create(
             fileId=self.doc_id,
             body=user_permission,
             fields="id").execute()
