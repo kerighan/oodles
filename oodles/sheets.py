@@ -5,6 +5,7 @@ from googleapiclient.errors import HttpError
 from .element import SheetChart
 from .utils import hex_to_rgb
 from .config import config
+import tempfile
 
 
 class Sheets:
@@ -24,16 +25,17 @@ class Sheets:
             body=body, fields="spreadsheetId").execute()
         return Sheets(spreadsheet.get("spreadsheetId"))
 
-    def share_with(self, email):
+    def share_with(self, email, as_admin=False):
         user_permission = {
             "type": "user",
-            "role": "writer",
+            "role": "owner" if as_admin else "writer",
             "emailAddress": email
         }
         config.DRIVE.permissions().create(
             fileId=self.doc_id,
             body=user_permission,
-            fields="id").execute()
+            fields="id",
+            transferOwnership = as_admin).execute()
 
     def load(self):
         try:

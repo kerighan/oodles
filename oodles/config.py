@@ -1,5 +1,6 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from google.cloud import storage
 import json
 import os
 
@@ -27,6 +28,8 @@ class Config:
         self.SHEETS = build("sheets", "v4", credentials=credentials)
         self.DOCS = build("docs", "v1", credentials=credentials)
         self.BUCKET = os.environ.get("OODLES_BUCKET", "gs://data-studies/img")
+        self.STORAGE_CLIENT = storage.Client.from_service_account_json(
+            credentials_path)
 
         with open(credentials_path, "r") as f:
             service_email = json.load(f)["client_email"]

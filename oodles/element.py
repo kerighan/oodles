@@ -156,12 +156,17 @@ class Image:
             check_output(
                 f"gsutil -q cp {value} gs://data-studies/img/{filename}",
                 shell=True)
-            url = check_output(
-                f"gsutil -q signurl -d 5m "
-                f"-m GET {os.environ['GOOGLE_APPLICATION_CREDENTIALS']} "
-                f"{config.BUCKET}/{filename}",
-                shell=True)
-            url = "https://" + str(url, "utf8").split("https://")[-1]
+            # url = check_output(
+            #     f"gsutil -q signurl -d 5m "
+            #     f"-m GET {os.environ['GOOGLE_APPLICATION_CREDENTIALS']} "
+            #     f"{config.BUCKET}/{filename}",
+            #     shell=True)
+            # url = "https://" + str(url, "utf8").split("https://")[-1]
+            # use google cloud storage client
+            blob = config.STORAGE_CLIENT.bucket("data-studies").blob(
+                f"img/{filename}")
+            blob.upload_from_filename(value)
+            url = blob.generate_signed_url()
             self.url = url
         else:
             super(Image, self).__setattr__(name, value)

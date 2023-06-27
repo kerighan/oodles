@@ -62,18 +62,17 @@ def replace_chart():
 
 
 def test_doc():
-    # doc_id = "1_7sqMnLGVmQBG-ojQHYFmkEEcSmi-0MPj42bx9sYHaY"
-    # doc = oo.Document(doc_id)
+    oo.init("rocket-43-9011f0ff0efb.json")
+    doc_id = "1_7sqMnLGVmQBG-ojQHYFmkEEcSmi-0MPj42bx9sYHaY"
+    doc = oo.Document(doc_id)
     # # doc["Title"] = "Title2"
-    # doc.change_title("Nouveau titre")
+    doc.set_title("TEst2")
     # doc.set_content(["yeah yeah", "yeah yeah yeah"])
 
-    oo.init("rocket-43-9011f0ff0efb.json")
-
-    doc = oo.Document.create("Test")
-    doc.set_title("Nouveau titre")
-    doc.set_content(["yeah yeah", "yeah yeah yeah"])
-    doc.share_with("mchenebaux@reputationsquad.com")
+    # doc = oo.Document.create("Test")
+    # doc.set_title("Nouveau titre")
+    # doc.set_content(["yeah yeah", "yeah yeah yeah"])
+    # doc.share_with("mchenebaux@reputationsquad.com")
 
 
 test_doc()
