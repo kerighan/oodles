@@ -25,6 +25,15 @@ class Sheets:
             body=body, fields="spreadsheetId").execute()
         return Sheets(spreadsheet.get("spreadsheetId"))
 
+    def copy(self, title=None):
+        if title is None:
+            title = f"Copy of {self.title}"
+        data = {"name": title}
+        new_id = config.DRIVE.files().copy(
+            body=data, fileId=self.doc_id
+        ).execute().get("id")
+        return Sheets(new_id)
+
     def share_with(self, email, as_admin=False):
         user_permission = {
             "type": "user",
@@ -42,10 +51,11 @@ class Sheets:
             sheet = config.SHEETS.spreadsheets()
             result = sheet.get(spreadsheetId=self.doc_id).execute()
             self.document = result
-        except HttpError:
-            print("remember to share your slides with "
-                  f"{config.service_email}\n")
-            raise HttpError
+        except HttpError as e:
+            print("remember to share your sheets with "
+                  f"{config.service_email}\n"
+                  "make sure the file extension is not .xlsx")
+            raise e
         self.sheets = self.document.get('sheets')
         self.title = self.document["properties"]["title"]
 
@@ -93,6 +103,21 @@ class Sheets:
         sheet.clear()
         sheet.value = df
 
+    def __delitem__(self, name):
+        sheet = self.__getitem__(name)
+        requests = [
+            {
+                "deleteSheet": {
+                    "sheetId": sheet.sheet_id
+                }
+            }
+        ]
+        config.SHEETS.spreadsheets().batchUpdate(
+            spreadsheetId=self.doc_id,
+            body={"requests": requests}
+        ).execute()
+        self.load()
+
 
 class Sheet:
     def __init__(self, parent, doc_id, content):
@@ -138,7 +163,13 @@ class Sheet:
         if name == "value":
             data = []
             for col in value.columns:
-                data.append([col] + value[col].tolist())
+                # datetime64
+                if value[col].dtype == "datetime64[ns]":
+                    items = [col] + value[col].apply(
+                        lambda x: x.strftime("%Y-%m-%d %H:%M:%S")).tolist()
+                    data.append(items)
+                else:
+                    data.append([col] + value[col].tolist())
             resource = {
                 "majorDimension": "COLUMNS",
                 "values": data

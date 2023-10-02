@@ -36,12 +36,16 @@ class Config:
 
         self.service_email = service_email
 
-    def init(self, DRIVE, SLIDES, SHEETS, DOCS, BUCKET, service_email):
+    def init(
+        self, DRIVE, SLIDES, SHEETS,
+        DOCS, BUCKET, STORAGE_CLIENT, service_email
+    ):
         self.DRIVE = DRIVE
         self.SLIDES = SLIDES
         self.SHEETS = SHEETS
         self.DOCS = DOCS
         self.BUCKET = BUCKET
+        self.STORAGE_CLIENT = STORAGE_CLIENT
         self.service_email = service_email
 
 
@@ -56,8 +60,11 @@ def init(credentials_path):
     SHEETS = build("sheets", "v4", credentials=credentials)
     DOCS = build("docs", "v1", credentials=credentials)
     BUCKET = os.environ.get("OODLES_BUCKET", "gs://data-studies/img")
+    STORAGE_CLIENT = storage.Client.from_service_account_json(
+        credentials_path)
 
     with open(credentials_path, "r") as f:
         service_email = json.load(f)["client_email"]
 
-    config.init(DRIVE, SLIDES, SHEETS, DOCS, BUCKET, service_email)
+    config.init(
+        DRIVE, SLIDES, SHEETS, DOCS, BUCKET, STORAGE_CLIENT, service_email)
