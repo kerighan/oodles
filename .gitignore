@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.ideas
+.idea
+.idea/*
 
 # Distribution / packaging
 .Python

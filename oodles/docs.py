@@ -3,16 +3,16 @@
 from googleapiclient.errors import HttpError
 
 from .config import config
-
+from .utils import GoogleAuthorizationError
 
 class Document:
-    def __init__(self, doc_id):
+    def __init__(self, doc_id: str):
         self.doc_id = doc_id
         self.url = "https://docs.google.com/document/d/" + self.doc_id
         self.load()
 
     @staticmethod
-    def create(title):
+    def create(title: str):
         body = {
             "title": title,
             'mimeType': 'application/vnd.google-apps.document'
@@ -21,7 +21,7 @@ class Document:
             body=body, fields="id").execute()
         return Document(document.get("id"))
 
-    def share_with(self, email):
+    def share_with(self, email: str):
         user_permission = {
             "type": "user",
             "role": "writer",
@@ -37,10 +37,8 @@ class Document:
             result = config.DOCS.documents().get(
                 documentId=self.doc_id).execute()
             self.document = result
-        except HttpError:
-            print("remember to share your document with "
-                  f"{config.service_email}\n")
-            raise HttpError
+        except HttpError as e:
+            raise GoogleAuthorizationError(e, config.service_email)
         self.title = self.document["title"]
 
     def empty_document(self):
@@ -66,13 +64,13 @@ class Document:
         except HttpError:
             pass
 
-    def set_title(self, new_title):
+    def set_title(self, new_title: str):
         body = {"name": new_title}
         request = config.DRIVE.files().update(fileId=self.doc_id, body=body)
         request.execute()
         self.title = new_title
 
-    def set_content(self, text_list):
+    def set_content(self, text_list: list[str]):
         """Set the content of the document."""
         # Empty the document
         self.empty_document()

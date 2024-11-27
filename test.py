@@ -42,10 +42,10 @@ def add_df_to_sheet():
     sheets["Data"].values()
     # create chart from data
     sheets["Data"].create_chart(
-        x="data", # absciss data
+        x="data",  # absciss data
         y=["data3", "data2"],  # series to compare
         colors=["#456123", "#616178"],  # colors to use
-        chart_type="AREA"  # can be of many types
+        chart_type="AREA",  # can be of many types
     )
 
 
