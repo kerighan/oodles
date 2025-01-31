@@ -80,7 +80,12 @@ class Slide:
                 transform = obj["transform"]
                 size = obj["size"]
                 src = obj["image"]["contentUrl"]
-                imgs.add(Image(obj_id, self.doc_id, src, transform, size))
+                # Extract title from alt text if available
+                title = None
+                if "description" in obj:
+                    title = obj["description"]
+                    print(title, "OBJECT")
+                imgs.add(Image(obj_id, self.doc_id, src, transform, size, title))
             elif "sheetsChart" in obj:
                 transform = obj["transform"]
                 size = obj["size"]

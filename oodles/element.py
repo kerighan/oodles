@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 # Text management - GOOGLE SLIDES SIDE
 # =============================================================================
 
+
 class TextBlocks(object):
     def __init__(self, doc_id: str):
         self.doc_id = doc_id
@@ -37,8 +38,8 @@ class TextBlocks(object):
         for element in self.elements:
             requests += element._fill(value)
         config.SLIDES.presentations().batchUpdate(
-            body={"requests": requests},
-            presentationId=self.doc_id).execute()
+            body={"requests": requests}, presentationId=self.doc_id
+        ).execute()
 
     def __setattr__(self, name: str, value: str):
         if name == "text":
@@ -55,8 +56,8 @@ class TextBlocks(object):
             requests += element._replace(key, value)
 
         config.SLIDES.presentations().batchUpdate(
-            body={"requests": requests},
-            presentationId=self.doc_id).execute()
+            body={"requests": requests}, presentationId=self.doc_id
+        ).execute()
 
 
 class TextBlock:
@@ -77,36 +78,28 @@ class TextBlock:
         new_text = value
         return [
             {"deleteText": {"objectId": self.obj_id}},
+            {"insertText": {"text": new_text, "objectId": self.obj_id}},
             {
-                "insertText": {
-                    "text": new_text,
-                    "objectId": self.obj_id
+                "updateTextStyle": {
+                    "style": self.style,
+                    "objectId": self.obj_id,
+                    "fields": "*",
                 }
             },
-            {"updateTextStyle": {
-                "style": self.style,
-                "objectId": self.obj_id,
-                "fields": "*"
-            }}
         ]
 
     def _replace(self, key: str, value: str) -> list:
         new_text = self.text.replace(key, value)
         return [
             {"deleteText": {"objectId": self.obj_id}},
-            {
-                "insertText": {
-                    "text": new_text,
-                    "objectId": self.obj_id
-                }
-            },
+            {"insertText": {"text": new_text, "objectId": self.obj_id}},
             {
                 "updateTextStyle": {
                     "style": self.style,
                     "objectId": self.obj_id,
-                    "fields": "*"
+                    "fields": "*",
                 }
-            }
+            },
         ]
 
 
@@ -114,35 +107,50 @@ class TextBlock:
 # Images management - GOOGLE SLIDES SIDE
 # =============================================================================
 
+
 class Images:
     def __init__(self):
         self.elements = []
+        self.title_map = {}  # Map titles to indices
 
     def add(self, block: "Image"):
         self.elements.append(block)
+        if block.title:  # If image has a title, add it to the map
+            self.title_map[str(block.title)] = len(self.elements) - 1
 
-    def __setitem__(self, key: int, value: str):
-        self.elements[key].replace_image(value)
+    def __setitem__(self, key, value: str):
+        if isinstance(key, str):
+            print(self.title_map, key)
+            # If key is a string, treat it as a title
+            # if key not in self.title_map:
+            #     raise KeyError(f"No image found with title '{key}'")
+            self.elements[self.title_map[key]].replace_image(value)
+        else:
+            # Otherwise use the original index-based behavior
+            self.elements[key].replace_image(value)
 
     def __len__(self):
         return len(self.elements)
 
-    def __getitem__(self, item):
-        return self.elements[item]
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            # If key is a string, treat it as a title
+            if key not in self.title_map:
+                raise KeyError(f"No image found with title '{key}'")
+            return self.elements[self.title_map[key]]
+        return self.elements[key]
 
 
 class Image:
-    def __init__(self,
-                 obj_id: str,
-                 doc_id: str,
-                 src: str,
-                 transform,
-                 size):
+    def __init__(
+        self, obj_id: str, doc_id: str, src: str, transform, size, title: str = None
+    ):  # Add title parameter
         self.obj_id = obj_id
         self.doc_id = doc_id
         self.src = src
         self.transform = transform
         self.size = size
+        self.title = title  # Store the title (alt text)
 
     def replace_image(self, value):
         if value[:4] == "http":
@@ -154,16 +162,16 @@ class Image:
         if name == "url":
             requests = [
                 {
-                    'replaceImage': {
-                        'imageObjectId': self.obj_id,
-                        'imageReplaceMethod': 'CENTER_INSIDE',
-                        'url': value
+                    "replaceImage": {
+                        "imageObjectId": self.obj_id,
+                        "imageReplaceMethod": "CENTER_INSIDE",
+                        "url": value,
                     }
                 }
             ]
             config.SLIDES.presentations().batchUpdate(
-                body={"requests": requests},
-                presentationId=self.doc_id).execute()
+                body={"requests": requests}, presentationId=self.doc_id
+            ).execute()
 
         elif name == "file":
             filename = value.split("/")[-1]
@@ -171,7 +179,7 @@ class Image:
             # use google cloud storage client
             bucket = config.BUCKET.removeprefix("gs://").split("/")[0]
             blob = "/".join(config.BUCKET.removeprefix("gs://").split("/")[1:])
-            blob = config.STORAGE_CLIENT.bucket(bucket).blob(blob+"/"+filename)
+            blob = config.STORAGE_CLIENT.bucket(bucket).blob(blob + "/" + filename)
             blob.upload_from_filename(value)
             url = blob.generate_signed_url(expire_in)
             self.url = url
@@ -185,6 +193,7 @@ class Image:
 # =============================================================================
 # Chart management - GOOGLE SLIDES SIDE
 # =============================================================================
+
 
 class Charts:
     def __init__(self):
@@ -201,12 +210,7 @@ class Charts:
 
 
 class Chart:
-    def __init__(self,
-                 obj_id: str,
-                 doc_id: str,
-                 slide_id: str,
-                 size,
-                 transform):
+    def __init__(self, obj_id: str, doc_id: str, slide_id: str, size, transform):
         self.obj_id = obj_id
         self.slide_id = slide_id
         self.doc_id = doc_id
@@ -217,33 +221,25 @@ class Chart:
         ss_id = sheet_chart.spreadsheet_id
         chart_id = sheet_chart.chart_id
         requests = [
-            {
-                "deleteObject": {
-                    "objectId": self.obj_id
-                }
-            },
+            {"deleteObject": {"objectId": self.obj_id}},
             {
                 "createSheetsChart": {
                     "spreadsheetId": ss_id,
                     "chartId": chart_id,
                     "objectId": self.obj_id,
-                    'linkingMode': 'LINKED',
+                    "linkingMode": "LINKED",
                     "elementProperties": {
-                        'size': self.size,
-                        'transform': self.transform,
-                        "pageObjectId": self.slide_id
-                    }
+                        "size": self.size,
+                        "transform": self.transform,
+                        "pageObjectId": self.slide_id,
+                    },
                 }
             },
-            {
-                'refreshSheetsChart': {
-                    'objectId': self.obj_id
-                }
-            }
+            {"refreshSheetsChart": {"objectId": self.obj_id}},
         ]
         config.SLIDES.presentations().batchUpdate(
-            body={"requests": requests},
-            presentationId=self.doc_id).execute()
+            body={"requests": requests}, presentationId=self.doc_id
+        ).execute()
 
     def __repr__(self) -> str:
         return f"{self.obj_id}"
@@ -253,6 +249,7 @@ class Chart:
 # Chart management - GOOGLE SHEETS SIDE
 # =============================================================================
 
+
 class SheetChart:
     def __init__(self, spreadsheet_id: str, chart_id: str):
         self.spreadsheet_id = spreadsheet_id
@@ -260,4 +257,3 @@ class SheetChart:
 
     def __repr__(self) -> str:
         return f"{self.chart_id}"
-
