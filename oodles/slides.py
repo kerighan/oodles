@@ -54,12 +54,40 @@ class Slides:
         self[slide_num].screenshot(path)
 
 
+class BatchUpdate:
+    def __init__(self, slide):
+        self.slide = slide
+        self.requests = []
+
+    def __enter__(self):
+        self.slide._batch_requests = self.requests
+        # Make sure to propagate to img
+        if hasattr(self.slide, "img"):
+            self.slide.img._batch_requests = self.requests
+            # Also propagate to each image
+            for img in self.slide.img.elements:
+                img._batch_requests = self.requests
+        return self.slide
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.requests:  # Only make the API call if we have requests
+            config.SLIDES.presentations().batchUpdate(
+                body={"requests": self.requests}, presentationId=self.slide.doc_id
+            ).execute()
+        self.slide._batch_requests = None
+        if hasattr(self.slide, "img"):
+            self.slide.img._batch_requests = None
+            for img in self.slide.img.elements:
+                img._batch_requests = None
+
+
 class Slide:
     def __init__(self, doc_id: str, page: int, content: dict):
         self.doc_id = doc_id
         self.page = page
         self.content = addict.Dict(content)
         self.slide_id = self.content.objectId
+        self._batch_requests = None  # Will store requests during batch update
         self.parse()
 
     def parse(self):
@@ -84,7 +112,6 @@ class Slide:
                 title = None
                 if "description" in obj:
                     title = obj["description"]
-                    print(title, "OBJECT")
                 imgs.add(Image(obj_id, self.doc_id, src, transform, size, title))
             elif "sheetsChart" in obj:
                 transform = obj["transform"]
@@ -112,10 +139,28 @@ class Slide:
 
     def __setitem__(self, query, value):
         blocks = self.find(query)
-        blocks.change_text(value)
+        if blocks is not None:
+            blocks._batch_requests = self._batch_requests
+            blocks.change_text(value)
 
     def __getitem__(self, query):
         return self.find(query)
+
+    def __setattr__(self, name: str, value):
+        if name == "_batch_requests":
+            super(Slide, self).__setattr__(name, value)
+            # Propagate batch requests to images and text blocks
+            if hasattr(self, "img"):
+                self.img._batch_requests = value
+            if hasattr(self, "text"):
+                for block in self.text:
+                    block._batch_requests = value
+        else:
+            super(Slide, self).__setattr__(name, value)
+
+    def batch_update(self):
+        """Context manager for batching multiple updates into a single API call"""
+        return BatchUpdate(self)
 
     def screenshot(self, path: str):
         """
