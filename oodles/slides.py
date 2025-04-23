@@ -1,6 +1,7 @@
 import os.path
 
 import addict
+from googleapiclient import errors
 import requests
 from google.auth.transport.requests import AuthorizedSession
 from googleapiclient.errors import HttpError
@@ -27,9 +28,13 @@ class Slides:
         if title is None:
             title = f"Copy of {self.title}"
         data = {"name": title}
-        new_id = (
-            config.DRIVE.files().copy(body=data, fileId=self.doc_id).execute().get("id")
-        )
+        try:
+            new_id = (
+                config.DRIVE.files().copy(body=data, fileId=self.doc_id).execute().get("id")
+            )
+        except errors.HttpError as e:
+            print("This error can happen if the file is in a shared drive")
+            raise e
         return Slides(new_id)
 
     def share_with(self, email: str):

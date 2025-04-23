@@ -4,17 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5b601b98-401c-478f-895b-72c80f7ede3f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/oodles/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/oodles/docs.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/docs.py" afterDir="false" />
+    <list default="true" id="5b601b98-401c-478f-895b-72c80f7ede3f" name="Changes" comment="Added add_hyperlink function">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/oodles/element.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/element.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/oodles/sheets.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/sheets.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/oodles/slides.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/slides.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/oodles/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/oodles/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -36,6 +30,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/alexandre/Reputation Squad Dropbox/Alexandre Dang/DATAPROJECTS/lib/oodles2&quot;
   }
@@ -43,7 +38,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-f5635417b835-31b6be0877a2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.18968.29" />
+        <option value="bundled-python-sdk-4f4e415b4190-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.26053.29" />
       </set>
     </attachedChunks>
   </component>
