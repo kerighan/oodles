@@ -1,3 +1,4 @@
+import warnings
 from googleapiclient.discovery import build, Resource
 from google.oauth2 import service_account
 from google.cloud import storage
@@ -15,17 +16,26 @@ scopes = (
 
 class Config:
     def __init__(self, credentials_path: str = None):
-        if "GOOGLE_DOC_CREDENTIALS" not in os.environ:
-            return
-
         credentials_path = os.environ.get("GOOGLE_DOC_CREDENTIALS", credentials_path)
-        # if file does not exist, return
-        if not os.path.exists(credentials_path):
+        credentials_info = os.environ.get("GOOGLE_DOC_CREDENTIALS_INFO", None) # is the string of the json
+
+        credentials = None
+        # Pass credentials via json
+        if credentials_path is not None and os.path.exists(credentials_path):
+            credentials = service_account.Credentials.from_service_account_file(
+                credentials_path, scopes=scopes
+            )
+        # Pass credentials via info directly (safer to pass secrets via environment variables)
+        elif credentials_info is not None:
+            info_dict = json.loads(credentials_info)
+            credentials = service_account.Credentials.from_service_account_info(info_dict)
+
+        # If we don't have credentials we exit (maybe we should raise an exception ?)
+        if credentials is None:
+            warnings.warn("No Google credentials found, please set a 'GOOGLE_DOC_CREDENTIALS' or a "
+                          "'GOOGLE_DOC_CREDENTIALS_INFO' environment variable.")
             return
 
-        credentials = service_account.Credentials.from_service_account_file(
-            credentials_path, scopes=scopes
-        )
         self.DRIVE = build("drive", "v3", credentials=credentials)
         self.SLIDES = build("slides", "v1", credentials=credentials)
         self.SHEETS = build("sheets", "v4", credentials=credentials)

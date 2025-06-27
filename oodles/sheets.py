@@ -288,8 +288,10 @@ class Sheet:
                                 "series": series,
                                 "headerCount": 1,
                                 "stackedType": (
-                                    stacked_type if chart_type == "BAR" else None
+                                    # stacked_type if chart_type == "BAR" else None
+                                    stacked_type
                                 ),
+
                             },
                         },
                         "position": {

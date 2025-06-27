@@ -58,6 +58,119 @@ class Slides:
         """
         self[slide_num].screenshot(path)
 
+    @classmethod
+    def list_all(cls):
+        """List all Google Slides presentations."""
+        presentations = []
+        page_token = None
+        slides_mime_type = 'application/vnd.google-apps.presentation'
+
+        while True:
+            try:
+                results = config.DRIVE.files().list(
+                    q=f"mimeType='{slides_mime_type}'",
+                    pageSize=100,
+                    fields="nextPageToken, files(id, name, modifiedTime, createdTime, webViewLink)",
+                    pageToken=page_token
+                ).execute()
+
+                items = results.get('files', [])
+                # Convert to Slides objects if desired
+                for item in items:
+                    presentations.append({
+                        'id': item['id'],
+                        'name': item['name'],
+                        'url': item.get('webViewLink'),
+                        'modified': item.get('modifiedTime'),
+                        'created': item.get('createdTime')
+                    })
+
+                page_token = results.get('nextPageToken', None)
+                if page_token is None:
+                    break
+
+            except HttpError as error:
+                raise GoogleAuthorizationError(error, config.service_email)
+
+        return presentations
+
+    @classmethod
+    def delete_by_id(cls, doc_id: str):
+        """
+        Delete a presentation by its ID without instantiating a Slides object.
+        WARNING: This permanently deletes the presentation!
+
+        Args:
+            doc_id: The ID of the presentation to delete
+
+        Returns:
+            bool: True if successful, False if not found
+        """
+        try:
+            config.DRIVE.files().delete(fileId=doc_id).execute()
+            print(f"Successfully deleted presentation with ID: {doc_id}")
+            return True
+        except HttpError as e:
+            if e.resp.status == 404:
+                raise FileNotFoundError(f"Presentation with ID {doc_id} not found.")
+            else:
+                raise GoogleAuthorizationError(e, config.service_email)
+
+    def delete(self):
+        """
+        Delete this presentation from Google Drive.
+        WARNING: This permanently deletes the presentation!
+        """
+        try:
+            config.DRIVE.files().delete(fileId=self.doc_id).execute()
+            print(f"Successfully deleted presentation: {self.title} (ID: {self.doc_id})")
+            # Clear the instance data since it's deleted
+            self.document = None
+            self.pages = None
+        except HttpError as e:
+            if e.resp.status == 404:
+                print(f"Presentation with ID {self.doc_id} not found.")
+            else:
+                raise GoogleAuthorizationError(e, config.service_email)
+
+    def get_permissions(self) -> list[dict]:
+        """
+        Get list of all users/permissions for this presentation.
+
+        Returns:
+            list: List of permission objects with user info
+        """
+        try:
+            permissions = config.DRIVE.permissions().list(
+                fileId=self.doc_id,
+                fields="permissions(id, type, emailAddress, role, displayName)"
+            ).execute()
+
+            return permissions.get('permissions', [])
+        except HttpError as e:
+            raise GoogleAuthorizationError(e, config.service_email)
+
+    def get_shared_users(self):
+        """
+        Get list of users (excluding owner) who have access to this presentation.
+
+        Returns:
+            list: List of dicts with user email and role
+        """
+        permissions = self.get_permissions()
+
+        shared_users = []
+        for perm in permissions:
+            if perm.get('role') != 'owner':
+                shared_users.append({
+                    'email': perm.get('emailAddress', 'Unknown'),
+                    'name': perm.get('displayName', 'Unknown'),
+                    'role': perm.get('role'),
+                    'type': perm.get('type'),
+                    'id': perm.get('id')
+                })
+
+        return shared_users
 
 class BatchUpdate:
     def __init__(self, slide):

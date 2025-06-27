@@ -1,4 +1,5 @@
 import os
+
 os.environ["GOOGLE_DOC_CREDENTIALS"] = "G:\\rsrch\\data-studies-81d668ddd2db.json"
 import oodles as oo
 import pandas as pd
@@ -79,10 +80,13 @@ def test_doc():
 
 def text_bold():
     slides = oo.Slides("1vvQMBGxrOpOZdQu1WoqdT477ubk1ZLQ2IWIvqzXIK4c")
-    slides[4]["Test"] = "Test <b>bold</b> and <i>italic</i> and <b><i>both</i></b> text with " + \
-                       "<a href='https://example.com'>default link</a> and " + \
-                       "<a href='https://example.com' color='red'>red link</a> and " + \
-                       "<a href='https://example.com' color='#00AA00'>hex color link</a>"
+    slides[4]["Test"] = (
+        "Test <b>bold</b> and <i>italic</i> and <b><i>both</i></b> text with "
+        + "<a href='https://example.com'>default link</a> and "
+        + "<a href='https://example.com' color='red'>red link</a> and "
+        + "<a href='https://example.com' color='#00AA00'>hex color link</a>"
+    )
+
 
 # test_doc()
 text_bold()
